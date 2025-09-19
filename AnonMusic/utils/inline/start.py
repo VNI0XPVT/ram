@@ -27,7 +27,7 @@ def private_panel(_):
         [
             InlineKeyboardButton(
                 text="ᴀᴠɪᴀᴛᴏʀ ʜᴀᴄᴋ", 
-                url="https://t.me/your_channel_username"  # <-- yaha aap apna Telegram channel username daal do
+                url="@Oliver_Income1"  # <-- yaha aap apna Telegram channel username daal do
             ),
             InlineKeyboardButton(
                 text="ᴍɪɴɪ ᴀᴘᴘ", 
