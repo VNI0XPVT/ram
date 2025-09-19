@@ -5,7 +5,10 @@ from pyrogram.types import InlineKeyboardButton, WebAppInfo
 def start_panel(_):
     buttons = [
         [
-            InlineKeyboardButton(text=_["S_B_1"], url=f"https://t.me/{app.username}?startgroup=true"),
+            InlineKeyboardButton(
+                text=_["S_B_1"], 
+                url=f"https://t.me/{app.username}?startgroup=true"
+            ),
         ],
         [
             InlineKeyboardButton(text=_["S_B_5"], url=config.SUPPORT_CHANNEL),
@@ -18,7 +21,10 @@ def start_panel(_):
 def private_panel(_):
     buttons = [
         [
-            InlineKeyboardButton(text=_["S_B_3"], url=f"https://t.me/{app.username}?startgroup=true")
+            InlineKeyboardButton(
+                text=_["S_B_3"], 
+                url=f"https://t.me/{app.username}?startgroup=true"
+            )
         ],
         [
             InlineKeyboardButton(text=_["S_B_6"], user_id=config.OWNER_ID),
@@ -26,16 +32,21 @@ def private_panel(_):
         ],
         [
             InlineKeyboardButton(
-                text="ᴀᴠɪᴀᴛᴏʀ ʜᴀᴄᴋ", 
-                url="https://t.me/Oliver_Income1"  # <-- yaha aap apna Telegram channel username daal do
+                text="ᴀᴠɪᴀᴛᴏʀ ʜᴀᴄᴋ",
+                url="https://t.me/Oliver_Income1"  # ✅ Full Telegram channel URL
             ),
             InlineKeyboardButton(
-                text="ᴍɪɴɪ ᴀᴘᴘ", 
-                web_app=WebAppInfo(url=config.MINI_APP if hasattr(config, "MINI_APP") else "https://example.com")
+                text="ᴍɪɴɪ ᴀᴘᴘ",
+                web_app=WebAppInfo(
+                    url=config.MINI_APP if hasattr(config, "MINI_APP") and config.MINI_APP else "https://example.com"
+                )
             ),
         ],
         [
-            InlineKeyboardButton(text=_["S_B_4"], callback_data="settings_back_helper"),
+            InlineKeyboardButton(
+                text=_["S_B_4"], 
+                callback_data="settings_back_helper"
+            ),
         ],
     ]
     return buttons
