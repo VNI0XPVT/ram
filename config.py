@@ -90,30 +90,30 @@ file_cache: dict[str, float] = {}
 
 # Bot images used in replies and menus
 START_IMG_URLS = [
-    "https://files.catbox.moe/3b02mr.jpg",
-    "https://files.catbox.moe/32kq7b.jpg",
-    "https://files.catbox.moe/6dpnb9.jpg",
-    "https://files.catbox.moe/wlbp8e.jpg",
-    "https://files.catbox.moe/v7hzfr.jpg",
-    "https://files.catbox.moe/8vfwuk.jpg",
-    "https://files.catbox.moe/3urmnu.jpg",
-    "https://files.catbox.moe/puzag2.jpg",
-    "https://files.catbox.moe/e87w5q.jpg",
-    "https://files.catbox.moe/i84mwm.jpg",
+    "https://files.catbox.moe/4stxch.jpg",
+    "https://files.catbox.moe/4stxch.jpg",
+    "https://files.catbox.moe/4stxch.jpg",
+    "https://files.catbox.moe/4stxch.jpg",
+    "https://files.catbox.moe/4stxch.jpg",
+    "https://files.catbox.moe/4stxch.jpg",
+    "https://files.catbox.moe/4stxch.jpg",
+    "https://files.catbox.moe/4stxch.jpg",
+    "https://files.catbox.moe/4stxch.jpg",
+    "https://files.catbox.moe/4stxch.jpg",
 ]
 
-START_IMG_URL = getenv("START_IMG_URL", "https://files.catbox.moe/x3a3nc.jpg")
-PING_IMG_URL = getenv("PING_IMG_URL", "https://files.catbox.moe/x3a3nc.jpg")
-PLAYLIST_IMG_URL = getenv("PLAYLIST_IMG_URL", "https://files.catbox.moe/v7u8ji.jpg")
-STATS_IMG_URL = getenv("STATS_IMG_URL", "https://files.catbox.moe/7g7j9f.jpg")
-TELEGRAM_AUDIO_URL = getenv("TELEGRAM_AUDIO_URL", "https://files.catbox.moe/fahcob.jpg")
-TELEGRAM_VIDEO_URL = getenv("TELEGRAM_VIDEO_URL", "https://files.catbox.moe/gy14qk.jpg")
-STREAM_IMG_URL = getenv("STREAM_IMG_URL", "https://files.catbox.moe/h0m0wz.jpg")
-SOUNCLOUD_IMG_URL = getenv("SOUNCLOUD_IMG_URL", "https://files.catbox.moe/ieduw9.jpg")
-YOUTUBE_IMG_URL = getenv("YOUTUBE_IMG_URL", "https://files.catbox.moe/rnwmfw.jpg")
-SPOTIFY_ARTIST_IMG_URL = getenv("SPOTIFY_ARTIST_IMG_URL", "https://files.catbox.moe/66ye0m.jpg")
-SPOTIFY_ALBUM_IMG_URL = getenv("SPOTIFY_ALBUM_IMG_URL", "https://files.catbox.moe/66ye0m.jpg")
-SPOTIFY_PLAYLIST_IMG_URL = getenv("SPOTIFY_PLAYLIST_IMG_URL", "https://files.catbox.moe/66ye0m.jpg")
+START_IMG_URL = getenv("START_IMG_URL", "https://files.catbox.moe/4stxch.jpg")
+PING_IMG_URL = getenv("PING_IMG_URL", "https://files.catbox.moe/4stxch.jpg")
+PLAYLIST_IMG_URL = getenv("PLAYLIST_IMG_URL", "https://files.catbox.moe/4stxch.jpg")
+STATS_IMG_URL = getenv("STATS_IMG_URL", "https://files.catbox.moe/4stxch.jpg")
+TELEGRAM_AUDIO_URL = getenv("TELEGRAM_AUDIO_URL", "https://files.catbox.moe/4stxch.jpg")
+TELEGRAM_VIDEO_URL = getenv("TELEGRAM_VIDEO_URL", "https://files.catbox.moe/4stxch.jpg")
+STREAM_IMG_URL = getenv("STREAM_IMG_URL", "https://files.catbox.moe/4stxch.jpg")
+SOUNCLOUD_IMG_URL = getenv("SOUNCLOUD_IMG_URL", "https://files.catbox.moe/4stxch.jpg")
+YOUTUBE_IMG_URL = getenv("YOUTUBE_IMG_URL", "https://files.catbox.moe/4stxch.jpg")
+SPOTIFY_ARTIST_IMG_URL = getenv("SPOTIFY_ARTIST_IMG_URL", "https://files.catbox.moe/4stxch.jpg")
+SPOTIFY_ALBUM_IMG_URL = getenv("SPOTIFY_ALBUM_IMG_URL", "https://files.catbox.moe/4stxch.jpg")
+SPOTIFY_PLAYLIST_IMG_URL = getenv("SPOTIFY_PLAYLIST_IMG_URL", "https://files.catbox.moe/4stxch.jpg")
 
 # Convert time (hh:mm:ss) to seconds
 def time_to_seconds(time: str) -> int:
