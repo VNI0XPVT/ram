@@ -26,8 +26,8 @@ def private_panel(_):
         ],
         [
             InlineKeyboardButton(
-                text="ʙᴏᴛ ᴅᴏᴄs", 
-                web_app=WebAppInfo(url=config.DEV if hasattr(config, "DEV") else "https://example.com")
+                text="ᴀᴠɪᴀᴛᴏʀ ʜᴀᴄᴋ", 
+                url=config.AVIATOR_HACK if hasattr(config, "AVIATOR_HACK") else "https://example.com"
             ),
             InlineKeyboardButton(
                 text="ᴍɪɴɪ ᴀᴘᴘ", 
