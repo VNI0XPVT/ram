@@ -1,0 +1,261 @@
+#!/bin/bash
+
+# --- Color Definitions ---
+# Using tput for more robust color handling and terminal capabilities
+# Check if tput is available, otherwise fall back to direct ANSI codes
+if command -v tput &>/dev/null; then
+    CRED=$(tput setaf 1)
+    CGREEN=$(tput setaf 2)
+    CYELLOW=$(tput setaf 3)
+    CBLUE=$(tput setaf 4)
+    CPURPLE=$(tput setaf 5)
+    C_RESET=$(tput sgr0)
+else
+    CRED='\033[0;31m'
+    CGREEN='\033[0;32m'
+    CYELLOW='\033[0;33m'
+    CBLUE='\033[0;34m'
+    CPURPLE='\033[0;35m'
+    C_RESET='\033[0;37m'
+fi
+
+# --- Helper Functions ---
+
+# Function to print messages with colors
+# Usage: pprint "Your message" "color_variable"
+pprint() {
+    local message="$1"
+    local color_code="${!2:-$CPURPLE}" # Use indirect expansion for color variable, default to purple
+    printf "%s%s%s" "$color_code" "$message" "$C_RESET"
+}
+
+# Function to reset text color to default
+color_reset() {
+    printf "%s" "$C_RESET"
+}
+
+# Function for yes/no prompts
+yesnoprompt() {
+    local old_stty_cfg=$(stty -g)
+    stty raw -echo
+    local answer
+    answer=$(head -c 1)
+    stty "$old_stty_cfg"
+    echo "$answer" | grep -iq "^y"
+}
+
+# Function to check for successful command execution
+# Usage: check_status $? "Success message" "Failure message" "log_file"
+check_status() {
+    local status_code=$1
+    local success_msg="$2"
+    local fail_msg="$3"
+    local log_file="$4"
+
+    if [ "$status_code" -eq 0 ]; then
+        pprint "$success_msg" "CGREEN"
+    else
+        pprint "$fail_msg" "CRED"
+        if [ -n "$log_file" ]; then
+            pprint "Check $log_file for details." "CYELLOW"
+        fi
+        return 1 # Indicate failure
+    fi
+    return 0 # Indicate success
+}
+
+# --- Installation Steps ---
+
+## Update System Packages
+# Handles updating package lists and optionally upgrading installed packages.
+update() {
+    pprint "\n\nUpdating package list... "
+    if sudo apt update &>> update_log.txt; then
+        pprint "DONE." "CGREEN"
+        # Check if upgrades are available
+        if apt list --upgradable 2>/dev/null | grep -q "upgradable"; then
+            pprint "\n\nUPDATE AVAILABLE." "CGREEN"
+            pprint "\nDo you want to automatically upgrade (y/n)? "
+            if yesnoprompt; then
+                pprint "\nUpgrading packages... "
+                if sudo apt upgrade -y &>> update_log.txt; then
+                    pprint "DONE!\n\n" "CGREEN"
+                else
+                    pprint "FAIL.\n\n" "CRED"
+                    pprint "Upgrade failed. Check update_log.txt for details." "CYELLOW"
+                    exit 1
+                fi
+            else
+                echo # Newline for readability
+            fi
+        else
+            pprint "ALREADY UP TO DATE.\n\n" "CGREEN"
+        fi
+    else
+        pprint "FAIL.\n\n" "CRED"
+        pprint "Failed to update package list. Check update_log.txt for details." "CYELLOW"
+        exit 1
+    fi
+}
+
+## Install Required System Packages (pip, ffmpeg)
+# Ensures necessary tools like pip and ffmpeg are installed.
+packages() {
+    # Install pip if not found
+    if ! command -v pip3 &>/dev/null; then
+        pprint "Couldn't find pip3, installing now... "
+        if sudo apt install python3-pip -y &>> pypilog.txt; then
+            check_status 0 "SUCCESS." "FAIL." "pypilog.txt" || exit 1
+        else
+            check_status 1 "" "FAIL." "pypilog.txt" || exit 1
+        fi
+    fi
+
+    # Install ffmpeg if not found
+    if ! command -v ffmpeg &>/dev/null; then
+        pprint "Couldn't find ffmpeg, installing now... "
+        if sudo apt install ffmpeg -y &>> ffmpeg_log.txt; then
+            check_status 0 "SUCCESS." "FAIL." "ffmpeg_log.txt" || exit 1
+        else
+            check_status 1 "" "FAIL." "ffmpeg_log.txt"
+            pprint "\nYou need to install ffmpeg manually in order to deploy AnonMusic. Exiting...\n" "CBLUE"
+            exit 1
+        fi
+    fi
+
+    # Check ffmpeg version and warn user
+    local ffmpeg_version_output=$(ffmpeg -version 2>/dev/null)
+    local fv=$(grep -Po 'version (3\.[0-9.]+)' <<< "$ffmpeg_version_output") # Capture major.minor version
+    if [ -n "$fv" ]; then
+        pprint "\nPlaying live streams might not work since you have ffmpeg $fv. Live streams are typically supported by version 4+.\n" "CBLUE"
+    fi
+}
+
+## Install Node.js and npm
+# Installs Node.js and npm if they are not already present.
+node() {
+    if command -v npm &>/dev/null; then
+        pprint "Node.js and npm are already installed. Skipping installation.\n" "CGREEN"
+        return
+    fi
+
+    pprint "Installing Node.js and npm... "
+    # Using 'set -o pipefail' for better error detection in pipes
+    set -o pipefail
+    if curl -fsSL https://deb.nodesource.com/setup_20.x | sudo -E bash - &>> nodelog.txt && \
+       sudo apt install -y nodejs &>> nodelog.txt && \
+       sudo npm i -g npm &>> nodelog.txt; then
+        check_status 0 "SUCCESS!\n" "FAIL.\n" "nodelog.txt" || exit 1
+    else
+        check_status 1 "" "FAIL.\n" "nodelog.txt" || exit 1
+    fi
+    set +o pipefail # Disable pipefail
+}
+
+## Install Python Dependencies
+# Upgrades pip and installs Python packages from requirements.txt.
+installation() {
+    pprint "\n\nUpgrading pip and installing dependency packages... "
+    if pip3 install -U pip &>> pypilog.txt; then
+        if pip3 install -U -r requirements.txt &>> pypilog.txt; then
+            pprint "DONE.\n" "CGREEN"
+            return
+        else
+            pprint "FAIL.\n" "CRED"
+            pprint "Failed to install Python dependencies. Check pypilog.txt for details." "CYELLOW"
+            exit 1
+        fi
+    else
+        pprint "FAIL.\n" "CRED"
+        pprint "Failed to upgrade pip. Check pypilog.txt for details." "CYELLOW"
+        exit 1
+    fi
+}
+
+# --- Main Script Execution ---
+
+clear
+pprint "Welcome to AnonMusic Setup Installer\n\n" "CBLUE"
+pprint "If you encounter any errors during the installation process, please refer to these files for logs:\n" "CYELLOW"
+pprint "  - For Node.js errors: nodelog.txt\n" "CYELLOW"
+pprint "  - For Python package errors: pypilog.txt\n" "CYELLOW"
+pprint "  - For apt update/upgrade errors: update_log.txt\n" "CYELLOW"
+pprint "  - For ffmpeg errors: ffmpeg_log.txt\n" "CYELLOW"
+sleep 2
+
+pprint "\nScript needs sudo privileges to update and install packages.\n" "CBLUE"
+# Test sudo access early
+if ! sudo -v &>/dev/null; then
+    pprint "Sudo authentication failed or no sudo access. Please provide sudo password or ensure your user has sudo privileges.\n" "CRED"
+    exit 1
+fi
+
+update
+packages
+node
+installation
+
+pprint "\n\n\nAnonMusic Installation Completed!\n" "CGREEN"
+sleep 1
+clear
+
+pprint "\nEnter Your Values Below\n\n\n" "CBLUE"
+
+# Input validation loop for environment variables
+read_with_validation() {
+    local prompt_msg="$1"
+    local var_name="$2"
+    local input_val
+    while true; do
+        pprint "\n$prompt_msg" "CBLUE" # Using CBLUE for prompts
+        color_reset
+        read -r input_val
+        if [ -n "$input_val" ]; then
+            eval "$var_name=\"\$input_val\"" # Assign value to the variable name passed
+            break
+        else
+            pprint "Input cannot be empty. Please try again.\n" "CYELLOW"
+        fi
+    done
+}
+
+read_with_validation "API ID: " api_id
+read_with_validation "API HASH: " api_hash
+read_with_validation "BOT TOKEN: " bot_token
+read_with_validation "OWNER ID: " ownid
+read_with_validation "MONGO DB URI: " mongo_db
+read_with_validation "LOG GROUP ID: " logger
+read_with_validation "STRING SESSION: " string_session
+
+pprint "\n\nProcessing your variables, please wait a while!\n" "CGREEN"
+
+if [ -f .env ]; then
+    pprint "Existing .env file found. Removing and recreating.\n" "CYELLOW"
+    rm .env
+fi
+
+# Use a temporary file for .env creation to prevent partial writes
+# Then atomically rename it.
+if cat <<EOF > .env.tmp; then
+API_ID = $api_id
+API_HASH = $api_hash
+BOT_TOKEN = $bot_token
+MONGO_DB_URI = $mongo_db
+LOGGER_ID = $logger
+STRING_SESSION = $string_session
+OWNER_ID = $ownid
+EOF
+    mv .env.tmp .env
+    pprint "Environment variables saved successfully to .env!\n" "CGREEN"
+else
+    pprint "Failed to write .env file. Please check permissions or disk space.\n" "CRED"
+    exit 1
+fi
+
+clear
+
+pprint "\n\n\nThanks for using AnonMusic installer! Your variables have been saved successfully.\n" "CGREEN"
+pprint "If you want to add more variables, edit your .env file using: " "CBLUE"
+pprint "vi .env" "CYELLOW" # Suggesting 'vi' as it was in the original, 'nano' is also common.
+pprint "\n\nNow you can start the bot by: " "CBLUE"
+pprint "bash start\n\n" "CGREEN"

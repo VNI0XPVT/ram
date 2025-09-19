@@ -1,0 +1,80 @@
+{
+    "name": "Anon Music",
+    "description": "A powerful Telegram Music Player Bot, written in Python with Pyrogram and Py-Tgcalls.",
+    "logo": "https://i.imgur.com/vHqB3qB.png",
+    "keywords": [
+        "python",
+        "python3",
+        "telegram",
+        "bot",
+        "musicbot",
+        "telegram-bot",
+        "pyrogram",
+        "py-tgcalls",
+        "AnonMusic"
+    ],
+    "env": {
+      "API_ID": {
+        "description": "Your Telegram API ID, obtained from https://my.telegram.org. This is essential for the bot to connect to Telegram.",
+        "value": "",
+        "required": true
+      },
+      "API_HASH": {
+        "description": "Your Telegram API Hash, obtained from https://my.telegram.org. Alongside API_ID, this authenticates your bot's connection.",
+        "value": "",
+        "required": true
+      },
+      "BOT_TOKEN": {
+        "description": "The token for your Telegram bot, obtained from @BotFather. This is crucial for your bot to function.",
+        "value": "",
+        "required": true
+      },
+      "MONGO_DB_URI": {
+        "description": "The MongoDB connection URI. Get this from MongoDB Atlas (https://cloud.mongodb.com). This is required for database operations (e.g., saving settings, user data).",
+        "value": "",
+        "required": true
+      },
+      "YTPROXY_URL": {
+        "description": "An optional YouTube proxy server endpoint. If you encounter issues with YouTube downloads (e.g., IP bans), using a proxy can help. Default provided.",
+        "value": "https://x.spotifytech.shop",
+        "required": false
+      },
+      "OWNER_ID": {
+        "description": "Your Telegram user ID. This ID will be granted owner privileges in the bot. Get it from @userinfobot or @Missrose_bot.",
+        "value": "",
+        "required": true
+      },
+      "STRING_SESSION": {
+        "description": "A Pyrogram V2 string session. Generate this using @SESSIONxGENxBOT on Telegram or by running a script locally. This is used for the bot's assistant client.",
+        "value": "",
+        "required": true
+      },
+      "HEROKU_API_KEY": {
+        "description": "Your Heroku account's API key. This is required if you want to use features like automatic dyno restarts or log access via the bot itself. Find it in your Heroku account settings.",
+        "value": "",
+        "required": false
+      },
+      "HEROKU_APP_NAME": {
+        "description": "The exact name of your Heroku application. Required if HEROKU_API_KEY is provided, for the bot to identify and interact with its own Heroku app.",
+        "value": "",
+        "required": false
+      },
+      "LOGGER_ID": {
+        "description": "The chat ID of your log group/channel. The bot will send important logs (e.g., errors, startup messages) here. Ensure the bot is an admin in this group/channel with message sending permissions. Make sure it's a GROUP ID (starts with -100), not a channel username.",
+        "value": "",
+        "required": true
+      }
+    },
+    "buildpacks": [
+          {
+              "url": "heroku/python"
+          },
+          {
+              "url": "heroku/nodejs"
+          },
+          {
+              "url": "https://github.com/jonathanong/heroku-buildpack-ffmpeg-latest.git"
+          }
+      ],
+      "stack": "container"
+}
