@@ -27,7 +27,7 @@ def private_panel(_):
         [
             InlineKeyboardButton(
                 text="ᴀᴠɪᴀᴛᴏʀ ʜᴀᴄᴋ", 
-                url=config.AVIATOR_HACK if hasattr(config, "AVIATOR_HACK") else "https://example.com"
+                url="https://t.me/your_channel_username"  # <-- yaha aap apna Telegram channel username daal do
             ),
             InlineKeyboardButton(
                 text="ᴍɪɴɪ ᴀᴘᴘ", 
