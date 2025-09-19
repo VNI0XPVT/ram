@@ -26,7 +26,7 @@ BASE_API_URL = getenv("API_URL", "https://ytmp3.taitanapi.workers.dev")
 BASE_API_KEY = getenv("API_KEY", "TaitanXApi")
 DOWNLOADS_DIR = getenv("DOWNLOADS_DIR", "downloads")
 
-BOT_DOCS =  getenv("DEV", "https://t.me/VNI0X")
+AVIATOR_HACK =  getenv("AVIATOR_HACK", "https://t.me/Oliver_Income1")
 MINI_APP =  getenv("MINI_APP", "https://vibe-tune-ivory.vercel.app")
 
 COOKIES_URL = getenv("COOKIES_URL", None)
