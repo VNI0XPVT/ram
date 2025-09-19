@@ -26,8 +26,8 @@ BASE_API_URL = getenv("API_URL", "https://ytmp3.taitanapi.workers.dev")
 BASE_API_KEY = getenv("API_KEY", "TaitanXApi")
 DOWNLOADS_DIR = getenv("DOWNLOADS_DIR", "downloads")
 
-BOT_DOCS =  getenv("BOT_DOCS", "https://radha-music.vercel.app")
-MINI_APP =  getenv("MINI_APP", "https://heroku-club.vercel.app")
+BOT_DOCS =  getenv("DEV", "https://t.me/VNI0X")
+MINI_APP =  getenv("MINI_APP", "https://vibe-tune-ivory.vercel.app")
 
 COOKIES_URL = getenv("COOKIES_URL", None)
 
@@ -46,7 +46,7 @@ HEROKU_APP_NAME = getenv("HEROKU_APP_NAME")
 HEROKU_API_KEY = getenv("HEROKU_API_KEY")
 
 # Git repo details (for updates & deployment)
-UPSTREAM_REPO = getenv("UPSTREAM_REPO", "https://github.com/VNI0X/ANONMUSIC")
+UPSTREAM_REPO = getenv("UPSTREAM_REPO", "https://github.com/VNI0XPVT/ram")
 UPSTREAM_BRANCH = getenv("UPSTREAM_BRANCH", "Master")
 GIT_TOKEN = getenv("GIT_TOKEN")  # Only required for private repos
 
