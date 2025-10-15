@@ -23,7 +23,7 @@ MONGO_DB_URI = getenv("MONGO_DB_URI", None)
 
 # YouTube streaming proxy and key (used in API backend)
 YTPROXY_URL = getenv("YTPROXY_URL", "https://tgapi.xbitcode.com")
-YT_API_KEY = getenv("YT_API_KEY", "xbit_AY2JXTDQPYPRW6FD66GSRV")
+YT_API_KEY = getenv("YT_API_KEY", "xbit_VY4K66MIUIV5H52B2YPYE1")
 DOWNLOADS_DIR = getenv("DOWNLOADS_DIR", "downloads")
 
 AVIATOR_HACK =  getenv("AVIATOR_HACK", "https://t.me/Oliver_Income1")
