@@ -22,8 +22,8 @@ BOT_TOKEN = getenv("BOT_TOKEN")
 MONGO_DB_URI = getenv("MONGO_DB_URI", None)
 
 # YouTube streaming proxy and key (used in API backend)
-BASE_API_URL = getenv("API_URL", "https://ytmp3.taitanapi.workers.dev")
-BASE_API_KEY = getenv("API_KEY", "TaitanXApi")
+YTPROXY_URL = getenv("YTPROXY_URL", "https://tgapi.xbitcode.com")
+YT_API_KEY = getenv("YT_API_KEY", "xbit_AY2JXTDQPYPRW6FD66GSRV")
 DOWNLOADS_DIR = getenv("DOWNLOADS_DIR", "downloads")
 
 AVIATOR_HACK =  getenv("AVIATOR_HACK", "https://t.me/Oliver_Income1")
