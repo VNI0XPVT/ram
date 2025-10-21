@@ -21,12 +21,14 @@ BOT_TOKEN = getenv("BOT_TOKEN")
 # MongoDB connection URI (for storing user & session data)
 MONGO_DB_URI = getenv("MONGO_DB_URI", None)
 
-# YouTube streaming proxy and key (used in API backend)
-# YouTube Downloader API
+# YouTube Downloader API URL
 YTDL_API = "http://80.211.130.162:7000"
 
-# API key for your yt-audio server
+# API Key for YT Downloader
 YT_API_KEY = "VNI0X"
+
+# Proxy URL (used internally by the bot)
+YTPROXY_URL = f"{YTDL_API}/?api_key={YT_API_KEY}"
 DOWNLOADS_DIR = getenv("DOWNLOADS_DIR", "downloads")
 
 AVIATOR_HACK =  getenv("AVIATOR_HACK", "https://t.me/Oliver_Income1")
