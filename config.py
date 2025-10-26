@@ -22,10 +22,10 @@ BOT_TOKEN = getenv("BOT_TOKEN")
 MONGO_DB_URI = getenv("MONGO_DB_URI", None)
 
 # YouTube Downloader API URL
-YTDL_API = "http://80.211.130.162:7000"
+YTDL_API = "http://80.211.130.162:8000/"
 
 # API Key for YT Downloader
-YT_API_KEY = "VNI0X"
+YT_API_KEY = "VNI0X12345API"
 
 # Proxy URL (used internally by the bot)
 YTPROXY_URL = f"{YTDL_API}/?api_key={YT_API_KEY}"
