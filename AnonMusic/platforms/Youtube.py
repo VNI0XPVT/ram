@@ -3,7 +3,6 @@ import glob, re, random, json, requests
 import aiofiles
 from pathlib import Path
 import time
-import mimetypes
 
 from typing import Union
 from pyrogram.types import Message
@@ -82,82 +81,77 @@ async def shell_cmd(cmd):
             return errorz.decode("utf-8")
     return out.decode("utf-8")
 
-async def download_from_stream_url(stream_url, filename, is_video=False):
-    """Download media from stream URL to downloads folder"""
+async def download_with_ytdlp(video_id, filename, is_video=False):
+    """Download using yt-dlp directly (reliable method)"""
     try:
         ensure_downloads_dir()
         
-        print(f"📥 Downloading from stream URL: {stream_url}")
-        print(f"📝 Filename: {filename}")
+        print(f"🎬 Downloading with yt-dlp: {video_id}")
         
-        async with httpx.AsyncClient(timeout=60) as client:
-            # Don't use HEAD request (causes 405 error)
-            # Directly try to download and check content type from response
+        # Build YouTube URL
+        youtube_url = f"https://www.youtube.com/watch?v={video_id}"
+        
+        if is_video:
+            # Video download options
+            ydl_opts = {
+                'format': 'best[height<=720]',
+                'outtmpl': f'downloads/{filename}.%(ext)s',
+                'quiet': False,
+                'no_warnings': False,
+            }
+        else:
+            # Audio download options
+            ydl_opts = {
+                'format': 'bestaudio/best',
+                'outtmpl': f'downloads/{filename}.%(ext)s',
+                'quiet': False,
+                'no_warnings': False,
+                'postprocessors': [{
+                    'key': 'FFmpegExtractAudio',
+                    'preferredcodec': 'mp3',
+                    'preferredquality': '192',
+                }],
+            }
+        
+        print(f"🔗 YouTube URL: {youtube_url}")
+        print(f"⚙️ Download options: {ydl_opts}")
+        
+        with yt_dlp.YoutubeDL(ydl_opts) as ydl:
+            # Get info first
+            info = ydl.extract_info(youtube_url, download=False)
+            print(f"📊 Video info: {info.get('title', 'Unknown')}")
+            print(f"📏 Duration: {info.get('duration', 0)} seconds")
             
-            print("🎬 Starting direct download...")
+            # Download the file
+            ydl.download([youtube_url])
             
-            async with client.stream('GET', stream_url) as response:
-                # Check content type from response
-                content_type = response.headers.get('content-type', '')
-                content_disposition = response.headers.get('content-disposition', '')
+            # Find the downloaded file
+            expected_ext = 'mp4' if is_video else 'mp3'
+            expected_file = Path(f"downloads/{filename}.{expected_ext}")
+            
+            if expected_file.exists() and expected_file.stat().st_size > 0:
+                file_size = expected_file.stat().st_size
+                print(f"✅ Download completed: {expected_file} ({file_size} bytes)")
+                return str(expected_file)
+            else:
+                # Try to find any file with the filename
+                pattern = f"downloads/{filename}.*"
+                matching_files = glob.glob(pattern)
+                if matching_files:
+                    for file_path in matching_files:
+                        file_size = Path(file_path).stat().st_size
+                        if file_size > 0:
+                            print(f"✅ Found downloaded file: {file_path} ({file_size} bytes)")
+                            return file_path
                 
-                print(f"📦 Content-Type: {content_type}")
-                print(f"📎 Content-Disposition: {content_disposition}")
+                print("❌ No valid file found after download")
+                return None
                 
-                # Check if it's JSON (API error)
-                if 'application/json' in content_type:
-                    print("❌ Stream URL returns JSON, not media")
-                    # Read the JSON error
-                    try:
-                        error_content = await response.aread()
-                        error_info = json.loads(error_content)
-                        print(f"❌ API Error: {error_info}")
-                    except:
-                        print("❌ Could not read error details")
-                    return None
-                
-                # Determine file extension
-                extension = ".mp4" if is_video else ".mp3"
-                
-                # Clean filename and add extension
-                clean_name = clean_filename(filename)
-                filepath = Path("downloads") / f"{clean_name}{extension}"
-                
-                print(f"💾 Saving to: {filepath}")
-                
-                total_size = int(response.headers.get('content-length', 0))
-                downloaded_size = 0
-                
-                print(f"📏 Total size: {total_size} bytes")
-                
-                async with aiofiles.open(filepath, 'wb') as file:
-                    async for chunk in response.aiter_bytes(chunk_size=8192):
-                        await file.write(chunk)
-                        downloaded_size += len(chunk)
-                        
-                        # Progress logging
-                        if total_size > 0:
-                            percent = (downloaded_size / total_size) * 100
-                            if int(percent) % 25 == 0:  # Log every 25%
-                                print(f"📊 Download progress: {percent:.1f}% ({downloaded_size}/{total_size} bytes)")
-                
-                # Verify file was downloaded
-                if filepath.exists() and filepath.stat().st_size > 0:
-                    file_size = filepath.stat().st_size
-                    print(f"✅ Download completed: {filepath} ({file_size} bytes)")
-                    return str(filepath)
-                else:
-                    print("❌ Downloaded file is empty or doesn't exist")
-                    return None
-                
-    except httpx.TimeoutException:
-        print("❌ Download timeout")
-        return None
-    except httpx.RequestError as e:
-        print(f"❌ Download request error: {e}")
+    except yt_dlp.DownloadError as e:
+        print(f"❌ yt-dlp Download Error: {e}")
         return None
     except Exception as e:
-        print(f"❌ Download error: {e}")
+        print(f"❌ yt-dlp Error: {e}")
         return None
 
 async def get_stream_url(query, video=False):
@@ -489,68 +483,16 @@ class YouTubeAPI:
             # Fallback filename
             filename = f"download_{int(time.time())}"
         
-        # First try stream URL download
-        stream_url = await get_stream_url(video_id, video)
-        if stream_url:
-            print(f"🎯 Using stream URL: {stream_url}")
-            downloaded_file = await download_from_stream_url(stream_url, filename, video)
-            if downloaded_file:
-                return downloaded_file, None
-            else:
-                print("❌ Stream download failed")
-        else:
-            print("❌ No stream URL found")
+        # Use yt-dlp directly (most reliable method)
+        print("🎯 Using yt-dlp for reliable download...")
+        downloaded_file = await download_with_ytdlp(video_id, filename, video)
         
-        # Fallback to traditional download if stream fails
-        print("🔄 Using traditional download...")
-        loop = asyncio.get_running_loop()
-
-        def audio_dl():
-            ydl_optssx = {
-                "format": "bestaudio/best",
-                "outtmpl": "downloads/%(id)s.%(ext)s",
-                "geo_bypass": True,
-                "nocheckcertificate": True,
-                "quiet": True,
-                "no_warnings": True,
-            }
-            x = yt_dlp.YoutubeDL(ydl_optssx)
-            info = x.extract_info(link, False)
-            xyz = os.path.join("downloads", f"{info['id']}.{info['ext']}")
-            if os.path.exists(xyz):
-                return xyz
-            x.download([link])
-            return xyz
-
-        def video_dl():
-            ydl_optssx = {
-                "format": "(bestvideo[height<=?720][width<=?1280][ext=mp4])+(bestaudio[ext=m4a])",
-                "outtmpl": "downloads/%(id)s.%(ext)s",
-                "geo_bypass": True,
-                "nocheckcertificate": True,
-                "quiet": True,
-                "no_warnings": True,
-            }
-            x = yt_dlp.YoutubeDL(ydl_optssx)
-            info = x.extract_info(link, False)
-            xyz = os.path.join("downloads", f"{info['id']}.{info['ext']}")
-            if os.path.exists(xyz):
-                return xyz
-            x.download([link])
-            return xyz
-
-        if songvideo:
-            downloaded_file = await loop.run_in_executor(None, video_dl)
-            return downloaded_file, None
-        elif songaudio:
-            downloaded_file = await loop.run_in_executor(None, audio_dl)
-            return downloaded_file, None
-        elif video:
-            downloaded_file = await loop.run_in_executor(None, video_dl)
+        if downloaded_file:
+            print(f"✅ Download successful: {downloaded_file}")
             return downloaded_file, None
         else:
-            downloaded_file = await loop.run_in_executor(None, audio_dl)
-            return downloaded_file, None
+            print("❌ yt-dlp download failed")
+            return None, None
 
 # Create global instance
 youtube = YouTubeAPI()
