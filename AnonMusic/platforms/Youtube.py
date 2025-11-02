@@ -37,7 +37,30 @@ async def get_stream_url(query, video=False):
         if response.status_code != 200:
             return ""
         info = response.json()
-        return info.get("stream_url")
+        return info.get("stream_url")  # This returns download URL
+
+
+async def download_from_stream_url(stream_url, filename):
+    """Download file from stream URL and save locally"""
+    try:
+        async with httpx.AsyncClient(timeout=60) as client:
+            async with client.stream('GET', stream_url) as response:
+                if response.status_code != 200:
+                    return None
+                
+                # Create downloads directory if not exists
+                os.makedirs("downloads", exist_ok=True)
+                
+                filepath = os.path.join("downloads", filename)
+                
+                with open(filepath, "wb") as f:
+                    async for chunk in response.aiter_bytes():
+                        f.write(chunk)
+                
+                return filepath
+    except Exception as e:
+        print(f"❌ Download error: {e}")
+        return None
 
 
 
@@ -229,6 +252,24 @@ class YouTubeAPI:
         thumbnail = result[query_type]["thumbnails"][0]["url"].split("?")[0]
         return title, duration_min, thumbnail, vidid
 
+    async def video(self, link: str, videoid: Union[bool, str] = None):
+        if videoid:
+            link = self.base + link
+        if "&" in link:
+            link = link.split("&")[0]
+        
+        # Get stream URL from API
+        stream_url = await get_stream_url(link, True)
+        if not stream_url:
+            return None
+            
+        # Download the file
+        vid_info = await self.details(link)
+        filename = f"{vid_info[4]}.mp4"  # vidid + .mp4
+        filepath = await download_from_stream_url(stream_url, filename)
+        
+        return filepath  # Returns local file path
+
     async def download(
         self,
         link: str,
@@ -324,9 +365,26 @@ class YouTubeAPI:
             fpath = f"downloads/{title}.mp3"
             return fpath
         elif video:
-            downloaded_file = await get_stream_url(link, True)
-            direct = None
+            # Get video stream URL and download it
+            stream_url = await get_stream_url(link, True)
+            if stream_url:
+                vid_info = await self.details(link)
+                filename = f"{vid_info[4]}.mp4"
+                downloaded_file = await download_from_stream_url(stream_url, filename)
+                return downloaded_file, None
+            else:
+                # Fallback to original method if API fails
+                downloaded_file = await loop.run_in_executor(None, video_dl)
+                return downloaded_file, None
         else:
-            direct = None
-            downloaded_file = await get_stream_url(link, False)
-        return downloaded_file, direct
+            # Get audio stream URL and download it
+            stream_url = await get_stream_url(link, False)
+            if stream_url:
+                vid_info = await self.details(link)
+                filename = f"{vid_info[4]}.mp3"
+                downloaded_file = await download_from_stream_url(stream_url, filename)
+                return downloaded_file, None
+            else:
+                # Fallback to original method if API fails
+                downloaded_file = await loop.run_in_executor(None, audio_dl)
+                return downloaded_file, None
