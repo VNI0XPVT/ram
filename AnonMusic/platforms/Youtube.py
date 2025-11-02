@@ -14,7 +14,7 @@ from AnonMusic.utils.formatters import time_to_seconds
 
 # ===== CONFIGURATION =====
 BASE_API_URL = "http://194.182.64.17:1470"
-BASE_API_KEY = "sk_cQ2oq8b87we6IxOnJwjEUKbexHGh"
+BASE_API_KEY = "sk_yvf4HYJxgQmzQDvf3MT4OOYbjSH6"
 
 # ===== FALLBACK FUNCTIONS =====
 def is_on_off(*args):
@@ -65,14 +65,41 @@ async def get_stream_url(query, video=False):
     """Get stream URL from API with fallback to direct extraction"""
     print(f"🎵 Fetching stream URL for: {query} (video: {video})")
     
+    # Clean the URL first
+    clean_query = clean_youtube_url(query)
+    print(f"🔧 Cleaned URL: {clean_query}")
+    
     # Try API first
-    api_url = await get_stream_url_from_api(query, video)
+    api_url = await get_stream_url_from_api(clean_query, video)
     if api_url:
         return api_url
     
     # Fallback to direct yt-dlp extraction
     print("🔄 API failed, using direct yt-dlp extraction...")
-    return await get_stream_url_direct(query, video)
+    return await get_stream_url_direct(clean_query, video)
+
+def clean_youtube_url(url):
+    """Clean and normalize YouTube URL"""
+    if not url:
+        return url
+    
+    # Remove double encoding
+    if "watch?v=https://" in url:
+        # Extract the actual video ID
+        match = re.search(r'watch\?v=([a-zA-Z0-9_-]+)', url)
+        if match:
+            video_id = match.group(1)
+            return f"https://www.youtube.com/watch?v={video_id}"
+    
+    # If it's already a proper YouTube URL, return as is
+    if "youtube.com/watch?v=" in url or "youtu.be/" in url:
+        return url
+    
+    # If it's just a video ID, make it a full URL
+    if re.match(r'^[a-zA-Z0-9_-]{11}$', url):
+        return f"https://www.youtube.com/watch?v={url}"
+    
+    return url
 
 async def get_stream_url_from_api(query, video=False):
     """Get stream URL from your API"""
@@ -85,7 +112,7 @@ async def get_stream_url_from_api(query, video=False):
             }
             
             print(f"🔗 API Request: {BASE_API_URL}/youtube")
-            print(f"📋 Params: {params}")
+            print(f"📋 Params: query={params['query'][:50]}..., video={params['video']}")
             
             response = await client.get(f"{BASE_API_URL}/youtube", params=params)
             
@@ -294,10 +321,9 @@ class YouTubeAPI:
 
     async def video(self, link: str, videoid: Union[bool, str] = None):
         """Get video stream URL"""
-        if videoid:
+        # Fix: Don't double encode the URL
+        if videoid and not link.startswith("http"):
             link = self.base + link
-        if "&" in link:
-            link = link.split("&")[0]
             
         print(f"🎥 Getting video stream for: {link}")
         stream_url = await get_stream_url(link, True)
@@ -310,10 +336,9 @@ class YouTubeAPI:
 
     async def music(self, link: str, videoid: Union[bool, str] = None):
         """Get audio stream URL"""
-        if videoid:
+        # Fix: Don't double encode the URL
+        if videoid and not link.startswith("http"):
             link = self.base + link
-        if "&" in link:
-            link = link.split("&")[0]
             
         print(f"🎵 Getting audio stream for: {link}")
         stream_url = await get_stream_url(link, False)
@@ -345,7 +370,7 @@ class YouTubeAPI:
 
     async def track(self, link: str, videoid: Union[bool, str] = None):
         """Get track details"""
-        if videoid:
+        if videoid and not link.startswith("http"):
             link = self.base + link
         if "&" in link:
             link = link.split("&")[0]
@@ -385,14 +410,14 @@ class YouTubeAPI:
 
     async def formats(self, link: str, videoid: Union[bool, str] = None):
         """Get available formats"""
-        if videoid:
+        if videoid and not link.startswith("http"):
             link = self.base + link
         if "&" in link:
             link = link.split("&")[0]
         
         try:
             ytdl_opts = {"quiet": True}
-            ydl = yt_dlp.YoutubeDL(ytdl_opts)
+            ydl = yt_dlp.YoutubeDL(ydl_opts)
             with ydl:
                 formats_available = []
                 r = ydl.extract_info(link, download=False)
@@ -419,7 +444,7 @@ class YouTubeAPI:
 
     async def slider(self, link: str, query_type: int, videoid: Union[bool, str] = None):
         """Get slider data"""
-        if videoid:
+        if videoid and not link.startswith("http"):
             link = self.base + link
         if "&" in link:
             link = link.split("&")[0]
@@ -447,7 +472,8 @@ class YouTubeAPI:
                      songaudio: bool = False, songvideo: bool = False, 
                      format_id: str = None, title: str = None):
         """Download or stream media"""
-        if videoid:
+        # Fix: Don't double encode the URL
+        if videoid and not link.startswith("http"):
             link = self.base + link
         
         print(f"📥 Download request: {link} (video: {video})")
