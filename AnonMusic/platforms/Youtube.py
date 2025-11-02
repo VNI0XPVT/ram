@@ -1,31 +1,16 @@
-import asyncio, httpx, yt_dlp, os
-import glob, re, random, json, requests
+import asyncio, httpx, os, re, yt_dlp
 
 from typing import Union
 from pyrogram.types import Message
-from urllib3.util.retry import Retry
-from requests.adapters import HTTPAdapter
 from pyrogram.enums import MessageEntityType
-from concurrent.futures import ThreadPoolExecutor
-from youtubesearchpython.__future__ import VideosSearch, CustomSearch
+from youtubesearchpython.__future__ import VideosSearch
 
-from AnonMusic.utils.database import is_on_off
-from AnonMusic.utils.formatters import time_to_seconds
 
-def cookie_txt_file():
-    try:
-        folder_path = f"{os.getcwd()}/cookies"
-        filename = f"{os.getcwd()}/cookies/logs.csv"
-        txt_files = glob.glob(os.path.join(folder_path, '*.txt'))
-        if not txt_files:
-            raise FileNotFoundError("No .txt files found in the specified folder.")
-        cookie_txt_file = random.choice(txt_files)
-        with open(filename, 'a') as file:
-            file.write(f'Choosen File : {cookie_txt_file}\n')
-        return f"""cookies/{str(cookie_txt_file).split("/")[-1]}"""
-    except:
-        pass
-      
+def time_to_seconds(time):
+    stringt = str(time)
+    return sum(int(x) * 60**i for i, x in enumerate(reversed(stringt.split(":"))))
+
+
 async def shell_cmd(cmd):
     proc = await asyncio.create_subprocess_shell(
         cmd,
@@ -41,33 +26,19 @@ async def shell_cmd(cmd):
     return out.decode("utf-8")
 
 
+
 async def get_stream_url(query, video=False):
-    apis = [
-        {
-            "url": "http://194.182.64.17:1470/youtube",
-            "key": "sk_yvf4HYJxgQmzQDvf3MT4OOYbjSH6"
-        },
-        {
-            "url": "http://194.182.64.17:1470/youtube",
-            "key": "sk_yvf4HYJxgQmzQDvf3MT4OOYbjSH6"
-        }
-    ]
-
+    api_url = "http://194.182.64.17:1470/youtube"
+    api_key = "sk_yvf4HYJxgQmzQDvf3MT4OOYbjSH6"
+    
     async with httpx.AsyncClient(timeout=60) as client:
-        for api in apis:
-            try:
-                params = {"query": query, "video": video, "api_key": api["key"]}
-                response = await client.get(api["url"], params=params)
+        params = {"query": query, "video": video, "api_key": api_key}
+        response = await client.get(api_url, params=params)
+        if response.status_code != 200:
+            return ""
+        info = response.json()
+        return info.get("stream_url")
 
-                if response.status_code == 200:
-                    info = response.json()
-                    stream_url = info.get("stream_url")
-                    if stream_url:
-                        return stream_url
-            except Exception:
-                continue
-
-    return ""
 
 
 class YouTubeAPI:
