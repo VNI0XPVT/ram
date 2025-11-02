@@ -9,6 +9,9 @@ from pyrogram.enums import MessageEntityType
 from concurrent.futures import ThreadPoolExecutor
 from youtubesearchpython.__future__ import VideosSearch, CustomSearch
 
+from AnonMusic.utils.database import is_on_off
+from AnonMusic.utils.formatters import time_to_seconds
+
 # ===== CONFIGURATION =====
 BASE_API_URL = "http://194.182.64.17:1470"
 BASE_API_KEY = "sk_cQ2oq8b87we6IxOnJwjEUKbexHGh"
@@ -59,7 +62,20 @@ async def shell_cmd(cmd):
     return out.decode("utf-8")
 
 async def get_stream_url(query, video=False):
-    """Get stream URL from API"""
+    """Get stream URL from API with fallback to direct extraction"""
+    print(f"🎵 Fetching stream URL for: {query} (video: {video})")
+    
+    # Try API first
+    api_url = await get_stream_url_from_api(query, video)
+    if api_url:
+        return api_url
+    
+    # Fallback to direct yt-dlp extraction
+    print("🔄 API failed, using direct yt-dlp extraction...")
+    return await get_stream_url_direct(query, video)
+
+async def get_stream_url_from_api(query, video=False):
+    """Get stream URL from your API"""
     try:
         async with httpx.AsyncClient(timeout=30) as client:
             params = {
@@ -67,22 +83,76 @@ async def get_stream_url(query, video=False):
                 "video": str(video).lower(),
                 "api_key": BASE_API_KEY
             }
+            
+            print(f"🔗 API Request: {BASE_API_URL}/youtube")
+            print(f"📋 Params: {params}")
+            
             response = await client.get(f"{BASE_API_URL}/youtube", params=params)
-
+            
+            print(f"📡 API Response Status: {response.status_code}")
+            
             if response.status_code == 200:
                 info = response.json()
                 stream_url = info.get("stream_url")
                 if stream_url:
+                    print(f"✅ Stream URL found: {stream_url[:100]}...")
                     return stream_url
                 else:
-                    print(f"❌ No stream_url in response: {info}")
+                    print(f"❌ No stream_url in API response")
                     return None
+            elif response.status_code == 403:
+                print("❌ API Error 403: Access Forbidden - Invalid API Key or IP blocked")
+                return None
+            elif response.status_code == 429:
+                print("❌ API Error 429: Rate Limit Exceeded")
+                return None
             else:
-                print(f"❌ API Error: {response.status_code}")
+                print(f"❌ API Error {response.status_code}: {response.text}")
                 return None
                 
+    except httpx.ConnectError:
+        print("❌ API Connection Error: Cannot connect to API server")
+        return None
+    except httpx.TimeoutException:
+        print("❌ API Timeout: Request took too long")
+        return None
     except Exception as e:
-        print(f"❌ Stream URL Error: {e}")
+        print(f"❌ API Unknown Error: {e}")
+        return None
+
+async def get_stream_url_direct(query, video=False):
+    """Fallback: Get stream URL directly using yt-dlp"""
+    try:
+        if video:
+            ydl_opts = {
+                'format': 'best[height<=720]',
+                'quiet': True,
+                'no_warnings': True,
+            }
+        else:
+            ydl_opts = {
+                'format': 'bestaudio/best',
+                'quiet': True,
+                'no_warnings': True,
+            }
+        
+        with yt_dlp.YoutubeDL(ydl_opts) as ydl:
+            print(f"🎬 Extracting direct URL with yt-dlp: {query}")
+            info = ydl.extract_info(query, download=False)
+            direct_url = info.get('url')
+            
+            if direct_url:
+                print(f"✅ Direct URL extracted: {direct_url[:100]}...")
+                return direct_url
+            else:
+                print("❌ No URL found in yt-dlp extraction")
+                return None
+                
+    except yt_dlp.DownloadError as e:
+        print(f"❌ yt-dlp Download Error: {e}")
+        return None
+    except Exception as e:
+        print(f"❌ yt-dlp Unknown Error: {e}")
         return None
 
 class YouTubeAPI:
@@ -229,7 +299,13 @@ class YouTubeAPI:
         if "&" in link:
             link = link.split("&")[0]
             
+        print(f"🎥 Getting video stream for: {link}")
         stream_url = await get_stream_url(link, True)
+        
+        if not stream_url:
+            print("❌ Failed to get video stream URL")
+            return None
+            
         return stream_url
 
     async def music(self, link: str, videoid: Union[bool, str] = None):
@@ -239,7 +315,13 @@ class YouTubeAPI:
         if "&" in link:
             link = link.split("&")[0]
             
+        print(f"🎵 Getting audio stream for: {link}")
         stream_url = await get_stream_url(link, False)
+        
+        if not stream_url:
+            print("❌ Failed to get audio stream URL")
+            return None
+            
         return stream_url
 
     async def playlist(self, link, limit, user_id, videoid: Union[bool, str] = None):
@@ -368,13 +450,20 @@ class YouTubeAPI:
         if videoid:
             link = self.base + link
         
-        # Use API for streaming (no download)
+        print(f"📥 Download request: {link} (video: {video})")
+        
+        # Use streaming (no download)
         if video:
-            stream_url = await get_stream_url(link, True)
+            stream_url = await self.video(link, videoid)
+        else:
+            stream_url = await self.music(link, videoid)
+            
+        if stream_url:
+            print(f"✅ Stream URL ready: {stream_url[:100]}...")
             return stream_url, None
         else:
-            stream_url = await get_stream_url(link, False)
-            return stream_url, None
+            print("❌ Failed to get stream URL")
+            return None, None
 
 # Create global instance
 youtube = YouTubeAPI()
