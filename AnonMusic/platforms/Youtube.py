@@ -9,9 +9,6 @@ from pyrogram.enums import MessageEntityType
 from concurrent.futures import ThreadPoolExecutor
 from youtubesearchpython.__future__ import VideosSearch, CustomSearch
 
-from AnonMusic.utils.database import is_on_off
-from AnonMusic.utils.formatters import time_to_seconds
-
 # ===== CONFIGURATION =====
 BASE_API_URL = "http://194.182.64.17:1470"
 BASE_API_KEY = "sk_yvf4HYJxgQmzQDvf3MT4OOYbjSH6"
@@ -122,8 +119,14 @@ async def get_stream_url_from_api(query, video=False):
                 info = response.json()
                 stream_url = info.get("stream_url")
                 if stream_url:
-                    print(f"✅ Stream URL found: {stream_url[:100]}...")
-                    return stream_url
+                    print(f"✅ Stream URL found: {stream_url}")
+                    
+                    # Test if stream URL is accessible and returns proper content
+                    if await test_stream_url(stream_url, video):
+                        return stream_url
+                    else:
+                        print("❌ Stream URL test failed, using fallback")
+                        return None
                 else:
                     print(f"❌ No stream_url in API response")
                     return None
@@ -146,6 +149,42 @@ async def get_stream_url_from_api(query, video=False):
     except Exception as e:
         print(f"❌ API Unknown Error: {e}")
         return None
+
+async def test_stream_url(stream_url, is_video=False):
+    """Test if stream URL returns proper media content"""
+    try:
+        print(f"🧪 Testing stream URL: {stream_url}")
+        
+        async with httpx.AsyncClient(timeout=10) as client:
+            # Make a HEAD request to check content type
+            head_response = await client.head(stream_url)
+            
+            content_type = head_response.headers.get('content-type', '').lower()
+            content_length = head_response.headers.get('content-length')
+            
+            print(f"📦 Content-Type: {content_type}")
+            print(f"📏 Content-Length: {content_length}")
+            
+            # Check if it's a valid media type
+            if is_video:
+                # For video, expect video/* or application/octet-stream
+                valid_types = ['video/', 'application/octet-stream']
+            else:
+                # For audio, expect audio/* or application/octet-stream  
+                valid_types = ['audio/', 'application/octet-stream']
+            
+            is_valid = any(ct in content_type for ct in valid_types)
+            
+            if is_valid:
+                print("✅ Stream URL test passed - valid media content")
+                return True
+            else:
+                print(f"❌ Stream URL test failed - invalid content type: {content_type}")
+                return False
+                
+    except Exception as e:
+        print(f"❌ Stream URL test error: {e}")
+        return False
 
 async def get_stream_url_direct(query, video=False):
     """Fallback: Get stream URL directly using yt-dlp"""
@@ -181,6 +220,21 @@ async def get_stream_url_direct(query, video=False):
     except Exception as e:
         print(f"❌ yt-dlp Unknown Error: {e}")
         return None
+
+async def get_direct_media_url(query, video=False):
+    """Get direct media URL that can be played directly"""
+    print(f"🎯 Getting direct media URL for: {query} (video: {video})")
+    
+    # First try the API stream URL
+    stream_url = await get_stream_url(query, video)
+    if stream_url:
+        # Test if this stream URL works properly
+        if await test_stream_url(stream_url, video):
+            return stream_url
+    
+    # If API fails, use direct yt-dlp extraction
+    print("🔄 Using direct yt-dlp extraction for media URL...")
+    return await get_stream_url_direct(query, video)
 
 class YouTubeAPI:
     def __init__(self):
@@ -231,7 +285,7 @@ class YouTubeAPI:
 
     async def details(self, link: str, videoid: Union[bool, str] = None):
         """Get video details"""
-        if videoid:
+        if videoid and not link.startswith("http"):
             link = self.base + link
         if "&" in link:
             link = link.split("&")[0]
@@ -262,7 +316,7 @@ class YouTubeAPI:
 
     async def title(self, link: str, videoid: Union[bool, str] = None):
         """Get video title"""
-        if videoid:
+        if videoid and not link.startswith("http"):
             link = self.base + link
         if "&" in link:
             link = link.split("&")[0]
@@ -281,7 +335,7 @@ class YouTubeAPI:
 
     async def duration(self, link: str, videoid: Union[bool, str] = None):
         """Get video duration"""
-        if videoid:
+        if videoid and not link.startswith("http"):
             link = self.base + link
         if "&" in link:
             link = link.split("&")[0]
@@ -300,7 +354,7 @@ class YouTubeAPI:
 
     async def thumbnail(self, link: str, videoid: Union[bool, str] = None):
         """Get video thumbnail"""
-        if videoid:
+        if videoid and not link.startswith("http"):
             link = self.base + link
         if "&" in link:
             link = link.split("&")[0]
@@ -326,7 +380,7 @@ class YouTubeAPI:
             link = self.base + link
             
         print(f"🎥 Getting video stream for: {link}")
-        stream_url = await get_stream_url(link, True)
+        stream_url = await get_direct_media_url(link, True)
         
         if not stream_url:
             print("❌ Failed to get video stream URL")
@@ -341,7 +395,7 @@ class YouTubeAPI:
             link = self.base + link
             
         print(f"🎵 Getting audio stream for: {link}")
-        stream_url = await get_stream_url(link, False)
+        stream_url = await get_direct_media_url(link, False)
         
         if not stream_url:
             print("❌ Failed to get audio stream URL")
@@ -417,7 +471,7 @@ class YouTubeAPI:
         
         try:
             ytdl_opts = {"quiet": True}
-            ydl = yt_dlp.YoutubeDL(ydl_opts)
+            ydl = yt_dlp.YoutubeDL(ytdl_opts)
             with ydl:
                 formats_available = []
                 r = ydl.extract_info(link, download=False)
@@ -485,7 +539,7 @@ class YouTubeAPI:
             stream_url = await self.music(link, videoid)
             
         if stream_url:
-            print(f"✅ Stream URL ready: {stream_url[:100]}...")
+            print(f"✅ Stream URL ready: {stream_url}")
             return stream_url, None
         else:
             print("❌ Failed to get stream URL")
