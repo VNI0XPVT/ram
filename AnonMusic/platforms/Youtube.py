@@ -15,7 +15,7 @@ try:
 except ImportError:
     # Default values if config import fails
     BASE_API_URL = "http://194.182.64.17:1470"
-    BASE_API_KEY = "sk_cQ2oq8b87we6IxOnJwjEUKbexHGh"
+    BASE_API_KEY = "sk_yvf4HYJxgQmzQDvf3MT4OOYbjSH6"
 
 # Import fix for missing modules
 try:
