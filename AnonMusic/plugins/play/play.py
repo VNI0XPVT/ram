@@ -4,7 +4,7 @@ import string
 from pyrogram import filters
 from pyrogram.types import InlineKeyboardMarkup, InputMediaPhoto, Message
 from pyrogram.errors.exceptions.bad_request_400 import MessageIdInvalid
-from pytgcalls.exceptions import NoActiveGroupCall
+from pytgcalls.exceptions import NoActiveGroupCall, AlreadyJoinedError
 
 import config
 from AnonMusic import Apple, Resso, SoundCloud, Spotify, Telegram, YouTube, app
