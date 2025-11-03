@@ -106,6 +106,7 @@ async def play_commnd(
                     forceplay=fplay,
                 )
             except Exception as e:
+                print(e)
                 ex_type = type(e).__name__
                 err = e if ex_type == "AssistantErr" else _["general_2"].format(ex_type)
                 return await mystic.edit_text(err)
@@ -150,6 +151,7 @@ async def play_commnd(
                     forceplay=fplay,
                 )
             except Exception as e:
+                print(e)
                 ex_type = type(e).__name__
                 err = e if ex_type == "AssistantErr" else _["general_2"].format(ex_type)
                 return await mystic.edit_text(err)
@@ -202,7 +204,8 @@ async def play_commnd(
             elif "playlist" in url:
                 try:
                     details, plist_id = await Spotify.playlist(url)
-                except Exception:
+                except Exception as e:
+                    print(e)
                     return await mystic.edit_text(_["play_3"])
                 streamtype = "playlist"
                 plist_type = "spplay"
@@ -283,6 +286,7 @@ async def play_commnd(
                     forceplay=fplay,
                 )
             except Exception as e:
+                print(e)
                 ex_type = type(e).__name__
                 err = e if ex_type == "AssistantErr" else _["general_2"].format(ex_type)
                 return await mystic.edit_text(err)
@@ -297,6 +301,7 @@ async def play_commnd(
                     text=_["play_17"],
                 )
             except Exception as e:
+                print(e)
                 return await mystic.edit_text(_["general_2"].format(type(e).__name__))
             await mystic.edit_text(_["str_2"])
             try:
@@ -313,6 +318,7 @@ async def play_commnd(
                     forceplay=fplay,
                 )
             except Exception as e:
+                print(e)
                 ex_type = type(e).__name__
                 err = e if ex_type == "AssistantErr" else _["general_2"].format(ex_type)
                 return await mystic.edit_text(err)
@@ -369,6 +375,7 @@ async def play_commnd(
                 forceplay=fplay,
             )
         except Exception as e:
+            print(e)
             ex_type = type(e).__name__
             err = e if ex_type == "AssistantErr" else _["general_2"].format(ex_type)
             try:
@@ -499,6 +506,7 @@ async def play_music(client, CallbackQuery, _):
             forceplay=ffplay,
         )
     except Exception as e:
+        print(e)
         ex_type = type(e).__name__
         err = e if ex_type == "AssistantErr" else _["general_2"].format(ex_type)
         return await mystic.edit_text(err)
@@ -597,6 +605,7 @@ async def play_playlists_command(client, CallbackQuery, _):
             forceplay=ffplay,
         )
     except Exception as e:
+        print(e)
         ex_type = type(e).__name__
         err = e if ex_type == "AssistantErr" else _["general_2"].format(ex_type)
         return await mystic.edit_text(err)
