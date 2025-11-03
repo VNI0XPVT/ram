@@ -40,8 +40,8 @@ def cookie_txt_file():
 
 async def get_stream_url(query: str, video: bool):
     api_url = (
-        f"http://154.26.159.2:1470/youtube"
-        f"?query={query}&video={video}&api_key=1a873582a7c83342f961xx0a177b2b26"
+        f"http://80.211.135.205/youtube"
+        f"?query={query}&video={video}&api_key=AIzaSyCNDWhirI16BIMq66vMVsibtSiUQ6swguY"
     )
 
     async with aiohttp.ClientSession() as session:
