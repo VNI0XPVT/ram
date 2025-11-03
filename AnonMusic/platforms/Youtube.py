@@ -23,10 +23,6 @@ from AnonMusic.utils.formatters import time_to_seconds
 
 logger = LOGGER(__name__)
 
-# API Configuration
-YT_API_KEY = "sk_yvf4HYJxgQmzQDvf3MT4OOYbjSH6"
-YTPROXY = "http://194.182.64.17:1470"
-
 def cookie_txt_file():
     try:
         folder_path = f"{os.getcwd()}/cookies"
@@ -44,25 +40,15 @@ def cookie_txt_file():
 
 async def get_stream_url(query: str, video: bool):
     api_url = (
-        f"{YTPROXY}/youtube"
-        f"?query={query}&video={video}&api_key={YT_API_KEY}"
+        f"http://194.182.64.17:1470/youtube"
+        f"?query={query}&video={video}&api_key=sk_yvf4HYJxgQmzQDvf3MT4OOYbjSH6"
     )
 
     async with aiohttp.ClientSession() as session:
-        try:
-            async with session.get(api_url, timeout=30) as resp:
-                resp.raise_for_status()
-                data = await resp.json()
-                return data.get("stream_url", None)
-        except asyncio.TimeoutError:
-            logger.error("API request timed out")
-            return None
-        except aiohttp.ClientError as e:
-            logger.error(f"API request failed: {str(e)}")
-            return None
-        except json.JSONDecodeError as e:
-            logger.error(f"Invalid JSON response: {str(e)}")
-            return None
+        async with session.get(api_url) as resp:
+            resp.raise_for_status()
+            data = await resp.json()
+            return data.get("stream_url", None)
 
 
 async def check_file_size(link):
@@ -128,9 +114,6 @@ class YouTubeAPI:
             "cookie_downloads": 0,
             "existing_files": 0
         }
-        # API Configuration
-        self.YT_API_KEY = YT_API_KEY
-        self.YTPROXY = YTPROXY
 
     async def _get_video_details(self, link: str, limit: int = 20) -> Union[dict, None]:
         """Helper function to get video details with duration limit and error handling"""
@@ -210,6 +193,7 @@ class YouTubeAPI:
             link = link.split("?si=")[0]
         elif "&si=" in link:
             link = link.split("&si=")[0]
+
 
         result = await self._get_video_details(link)
         if not result:
@@ -442,10 +426,6 @@ class YouTubeAPI:
         if videoid:
             vid_id = link
             link = self.base + link
-        else:
-            # Extract video ID from link
-            vid_id = self.extract_video_id(link)
-            
         loop = asyncio.get_running_loop()
 
         def create_session():
@@ -456,6 +436,7 @@ class YouTubeAPI:
             return session
 
         async def download_with_curl(url, filepath, headers=None, max_retries=3):
+            
             cmd = [
                 "curl",
                 "-L",  # Follow redirects
@@ -472,7 +453,7 @@ class YouTubeAPI:
                 url
             ]
             
-            # Add headers
+            # Add headers  x-api-key for authentication required now in 3.5.0
             if headers:
                 for key, value in headers.items():
                     cmd.extend(["-H", f"{key}: {value}"])
@@ -498,7 +479,7 @@ class YouTubeAPI:
                     return None
                     
             except Exception as e:
-                logger.error(f"Curl download exception: {str(e)}")
+
                 if os.path.exists(filepath):
                     os.remove(filepath)
                 return None
@@ -507,7 +488,7 @@ class YouTubeAPI:
             try:
                 session = create_session()
                 
-                # Use headers for authentication
+                # Use headers for authentication (including x-api-key)
                 response = session.get(url, headers=headers, stream=True, timeout=60)
                 response.raise_for_status()
                 
@@ -533,26 +514,25 @@ class YouTubeAPI:
 
         async def audio_dl(vid_id):
             try:
-                if not self.YT_API_KEY:
+                if not YT_API_KEY:
                     logger.error("API KEY not set in config, Set API Key you got from @tgmusic_apibot")
                     return None
-                if not self.YTPROXY:
+                if not YTPROXY:
                     logger.error("API Endpoint not set in config\nPlease set a valid endpoint for YTPROXY_URL in config.")
                     return None
                 
                 headers = {
-                    "x-api-key": f"{self.YT_API_KEY}",
+                    "x-api-key": f"{YT_API_KEY}",
                     "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36"
                 }
                 
                 filepath = os.path.join("downloads", f"{vid_id}.mp3")
                 
                 if os.path.exists(filepath):
-                    logger.info(f"Audio file already exists: {filepath}")
                     return filepath
                 
                 session = create_session()
-                getAudio = session.get(f"{self.YTPROXY}/info/{vid_id}", headers=headers, timeout=60)
+                getAudio = session.get(f"{YTPROXY}/info/{vid_id}", headers=headers, timeout=60)
                 
                 try:
                     songData = getAudio.json()
@@ -564,23 +544,17 @@ class YouTubeAPI:
                 
                 status = songData.get('status')
                 if status == 'success':
-                    audio_url = songData.get('audio_url')
-                    if not audio_url:
-                        logger.error("No audio URL in API response")
-                        return None
+                    audio_url = songData['audio_url']
+                    #audio_url = base64.b64decode(songlink).decode() remove in 3.5.0
                     
-                    logger.info(f"Downloading audio from: {audio_url}")
                     result = await download_with_curl(audio_url, filepath, headers)
                     if result:
-                        logger.info(f"Audio downloaded successfully: {filepath}")
                         return result
                     
                     result = await download_with_requests_fallback(audio_url, filepath, headers)
                     if result:
-                        logger.info(f"Audio downloaded successfully (fallback): {filepath}")
                         return result
                     
-                    logger.error("All download methods failed for audio")
                     return None
                     
                 elif status == 'error':
@@ -599,28 +573,28 @@ class YouTubeAPI:
             
             return None
         
+        
         async def video_dl(vid_id):
             try:
-                if not self.YT_API_KEY:
+                if not YT_API_KEY:
                     logger.error("API KEY not set in config, Set API Key you got from @tgmusic_apibot")
                     return None
-                if not self.YTPROXY:
+                if not YTPROXY:
                     logger.error("API Endpoint not set in config\nPlease set a valid endpoint for YTPROXY_URL in config.")
                     return None
                 
                 headers = {
-                    "x-api-key": f"{self.YT_API_KEY}",
+                    "x-api-key": f"{YT_API_KEY}",
                     "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36"
                 }
                 
                 filepath = os.path.join("downloads", f"{vid_id}.mp4")
                 
                 if os.path.exists(filepath):
-                    logger.info(f"Video file already exists: {filepath}")
                     return filepath
                 
                 session = create_session()
-                getVideo = session.get(f"{self.YTPROXY}/info/{vid_id}", headers=headers, timeout=60)
+                getVideo = session.get(f"{YTPROXY}/info/{vid_id}", headers=headers, timeout=60)
                 
                 try:
                     videoData = getVideo.json()
@@ -632,23 +606,17 @@ class YouTubeAPI:
                 
                 status = videoData.get('status')
                 if status == 'success':
-                    video_url = videoData.get('video_url')
-                    if not video_url:
-                        logger.error("No video URL in API response")
-                        return None
+                    video_url = videoData['video_url']
+                    #video_url = base64.b64decode(videolink).decode() removed in 3.5.0
                     
-                    logger.info(f"Downloading video from: {video_url}")
                     result = await download_with_curl(video_url, filepath, headers)
                     if result:
-                        logger.info(f"Video downloaded successfully: {filepath}")
                         return result
                     
                     result = await download_with_requests_fallback(video_url, filepath, headers)
                     if result:
-                        logger.info(f"Video downloaded successfully (fallback): {filepath}")
                         return result
                     
-                    logger.error("All download methods failed for video")
                     return None
                     
                 elif status == 'error':
@@ -706,51 +674,19 @@ class YouTubeAPI:
             x = yt_dlp.YoutubeDL(ydl_optssx)
             x.download([link])
 
-        # Main download logic
         if songvideo:
             await loop.run_in_executor(None, song_video_dl)
             fpath = f"downloads/{title}.mp4"
-            return fpath, False
-        
+            return fpath
         elif songaudio:
             await loop.run_in_executor(None, song_audio_dl)
             fpath = f"downloads/{title}.mp3"
-            return fpath, False
-        
+            return fpath
         elif video:
-            # Try API first for direct video stream
-            downloaded_file = await video_dl(vid_id)
-            if downloaded_file:
-                return downloaded_file, True
-            else:
-                # Fallback to traditional download
-                direct = True
-                downloaded_file = await get_stream_url(vid_id, True)
-                return downloaded_file, direct
-        
+            direct = True
+            downloaded_file = await get_stream_url(vid_id, True)
         else:
-            # Try API first for direct audio stream
-            downloaded_file = await audio_dl(vid_id)
-            if downloaded_file:
-                return downloaded_file, True
-            else:
-                # Fallback to traditional download
-                direct = True
-                downloaded_file = await get_stream_url(vid_id, False)
-                return downloaded_file, direct
-
-    def extract_video_id(self, url: str) -> str:
-        """Extract video ID from YouTube URL"""
-        patterns = [
-            r'(?:youtube\.com/watch\?v=|youtu\.be/)([^&?\n]+)',
-            r'youtube\.com/embed/([^&?\n]+)',
-            r'youtube\.com/v/([^&?\n]+)',
-        ]
+            direct = True
+            downloaded_file = await get_stream_url(vid_id, False)
         
-        for pattern in patterns:
-            match = re.search(pattern, url)
-            if match:
-                return match.group(1)
-        
-        # If no pattern matches, return the original URL
-        return url
+        return downloaded_file, direct
