@@ -40,7 +40,7 @@ def cookie_txt_file():
 
 async def get_stream_url(query: str, video: bool):
     api_url = (
-        f"http://80.211.135.205/youtube"
+        f"http://80.211.135.205:1470/youtube"
         f"?query={query}&video={video}&api_key=AIzaSyCNDWhirI16BIMq66vMVsibtSiUQ6swguY"
     )
 
